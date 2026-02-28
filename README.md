@@ -19,23 +19,9 @@ The algorithm follows the **DR Loudness Standard** (Pleasurize Music Foundation)
 
 ---
 
-## Build
+## Download
 
-You need [Rust](https://rustup.rs) ≥ 1.70.
-
-```bash
-# Clone / copy the project, then:
-cd dr-measure
-cargo build --release
-```
-
-The binary is at `target/release/dr-measure` (or `dr-measure.exe` on Windows).
-
-Optionally install it system-wide:
-
-```bash
-cargo install --path .
-```
+Download the [latest binary release for your platform](https://github.com/alexpilotti/dr-measure/releases) and unzip it.
 
 ---
 
@@ -111,13 +97,23 @@ dr-measure ~/music/album --quiet
 
 ---
 
-## Dependencies
+## Build
 
-| Crate   | Purpose                        |
-|---------|--------------------------------|
-| clap    | CLI argument parsing           |
-| claxon  | Pure-Rust FLAC decoder         |
-| chrono  | Timestamp in report header     |
+You need [Rust](https://rustup.rs) ≥ 1.70.
+
+```bash
+# Clone / copy the project, then:
+cd dr-measure
+cargo build --release
+```
+
+The binary is at `target/release/dr-measure` (or `dr-measure.exe` on Windows).
+
+Optionally install it system-wide:
+
+```bash
+cargo install --path .
+```
 
 ---
 
