@@ -348,7 +348,7 @@ fn main() {
     }
 
     if !args.quiet {
-        println!("DR Meter — found {} FLAC file(s) in {}\n", flac_files.len(), folder.display());
+        println!("DR Measure — found {} FLAC file(s) in {}\n", flac_files.len(), folder.display());
     }
 
     let total = flac_files.len();

@@ -1,4 +1,4 @@
-# dr-meter
+# dr-measure
 
 A fast, cross-platform CLI tool written in Rust that calculates the **Dynamic Range (DR)** score
 of every FLAC file in a folder and writes a plain-text report.
@@ -25,11 +25,11 @@ You need [Rust](https://rustup.rs) ≥ 1.70.
 
 ```bash
 # Clone / copy the project, then:
-cd dr-meter
+cd dr-measure
 cargo build --release
 ```
 
-The binary is at `target/release/dr-meter` (or `dr-meter.exe` on Windows).
+The binary is at `target/release/dr-measure` (or `dr-measure.exe` on Windows).
 
 Optionally install it system-wide:
 
@@ -42,7 +42,7 @@ cargo install --path .
 ## Usage
 
 ```
-dr-meter [OPTIONS] [FOLDER]
+dr-measure [OPTIONS] [FOLDER]
 
 Arguments:
   [FOLDER]  Folder containing FLAC files [default: .]
@@ -58,16 +58,16 @@ Options:
 
 ```bash
 # Analyse current directory, write dr_report.txt here
-dr-meter
+dr-measure
 
 # Analyse a specific album folder
-dr-meter "/music/Pink Floyd - The Wall"
+dr-measure "/music/Pink Floyd - The Wall"
 
 # Custom report path
-dr-meter ~/music/album -o ~/desktop/wall_dr.txt
+dr-measure ~/music/album -o ~/desktop/wall_dr.txt
 
 # Silent batch use (CI / scripts)
-dr-meter ~/music/album --quiet
+dr-measure ~/music/album --quiet
 ```
 
 ---

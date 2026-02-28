@@ -1,12 +1,12 @@
 [package]
-name = "dr-meter"
+name = "dr-measure"
 version = "0.1.0"
 edition = "2021"
 description = "Dynamic Range (DR) meter for FLAC files"
 authors = []
 
 [[bin]]
-name = "dr-meter"
+name = "dr-measure"
 path = "src/main.rs"
 
 [dependencies]
