@@ -1,0 +1,20 @@
+[package]
+name = "dr-meter"
+version = "0.1.0"
+edition = "2021"
+description = "Dynamic Range (DR) meter for FLAC files"
+authors = []
+
+[[bin]]
+name = "dr-meter"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+claxon = "0.4"
+chrono = "0.4"
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
