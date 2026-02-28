@@ -26,23 +26,25 @@ struct Args {
 
 // ─── DR Algorithm ────────────────────────────────────────────────────────────
 //
-// The official DR algorithm (as used by the foobar2000 Dynamic Range Meter):
+// Ported from https://codeberg.org/janw/drmeter/src/branch/main/drmeter/algorithm.py
 //
-//  1. Split each channel into non-overlapping blocks of ~3 s.
+//  1. Split each channel into non-overlapping blocks of round(3 * sample_rate) samples.
 //  2. For each block compute:
-//       • RMS  = sqrt( mean(x²) )
-//       • Peak = max(|x|)
-//  3. Keep the top 20 % of blocks by RMS → "loud" blocks.
-//  4. DR_channel = 20·log10( peak_of_loud_blocks / rms_of_loud_blocks )
-//     where peak_of_loud_blocks  = RMS-weighted mean of block peaks
-//           rms_of_loud_blocks   = sqrt( mean of squared RMSes of loud blocks )
-//  5. DR_track = mean of per-channel DR values, rounded to nearest integer.
+//       • RMS  = sqrt( mean( 2 * |x|² ) )   ← note the factor of 2
+//       • Peak = max( |x| )
+//  3. Sort all blocks ascending by RMS and Peak independently.
+//  4. top_n      = round( total_blocks * 0.2 )
+//     rms_loud   = sqrt( sum( rms[-top_n:]² ) / top_n )
+//     peak_loud  = peak[-2]   (2nd highest peak block, NTH_HIGHEST_PEAK = 2)
+//  5. DR_channel = 20 * log10( peak_loud / rms_loud )  (0.0 if rms_loud == 0)
+//  6. DR_track   = mean( DR_channel ), rounded to nearest integer.
+
+const BLOCKSIZE_SECONDS: f64 = 3.0;
+const UPMOST_BLOCKS_RATIO: f64 = 0.2;
+const NTH_HIGHEST_PEAK: usize = 2; // 1-based from top → [-2] in Python
 
 fn block_size_for_sample_rate(sample_rate: u32) -> usize {
-    // Keep roughly 3 s; snap to nearest multiple keeps things tidy
-    let target = (sample_rate as f64 * 3.0) as usize;
-    // round up to nearest even number
-    if target % 2 == 0 { target } else { target + 1 }
+    (BLOCKSIZE_SECONDS * sample_rate as f64).round() as usize
 }
 
 #[derive(Debug, Clone)]
@@ -52,8 +54,10 @@ struct BlockStats {
 }
 
 fn compute_block_stats(samples: &[f64]) -> BlockStats {
+    let n = samples.len() as f64;
+    // RMS: sqrt( mean( 2 * |x|² ) )
+    let rms = (samples.iter().map(|x| 2.0 * x * x).sum::<f64>() / n).sqrt();
     let peak = samples.iter().cloned().fold(0.0f64, |a, x| a.max(x.abs()));
-    let rms = (samples.iter().map(|x| x * x).sum::<f64>() / samples.len() as f64).sqrt();
     BlockStats { rms, peak }
 }
 
@@ -62,26 +66,32 @@ fn dr_for_channel(blocks: &[BlockStats]) -> f64 {
         return 0.0;
     }
 
-    // Sort blocks by RMS descending
-    let mut sorted: Vec<&BlockStats> = blocks.iter().collect();
-    sorted.sort_by(|a, b| b.rms.partial_cmp(&a.rms).unwrap());
+    let total = blocks.len();
 
-    // Take top 20 % (at least 1)
-    let top_n = ((blocks.len() as f64 * 0.2).ceil() as usize).max(1);
-    let loud: &[&BlockStats] = &sorted[..top_n];
+    // Sort RMS values ascending (mirrors block_rms.sort(axis=0))
+    let mut rms_sorted: Vec<f64> = blocks.iter().map(|b| b.rms).collect();
+    rms_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
-    // Loudness peak = mean of block peaks weighted equally
-    let peak_mean = loud.iter().map(|b| b.peak).sum::<f64>() / top_n as f64;
+    // Sort peak values ascending independently (mirrors block_peak.sort(axis=0))
+    let mut peak_sorted: Vec<f64> = blocks.iter().map(|b| b.peak).collect();
+    peak_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
-    // Loudness RMS = sqrt(mean of squared RMSes)
-    let rms_sq_mean = loud.iter().map(|b| b.rms * b.rms).sum::<f64>() / top_n as f64;
-    let rms_mean = rms_sq_mean.sqrt();
+    // peak_loud = block_peak[-NTH_HIGHEST_PEAK] = 2nd highest
+    let peak_idx = total.saturating_sub(NTH_HIGHEST_PEAK);
+    let peak_loud = peak_sorted[peak_idx];
 
-    if rms_mean < 1e-10 {
+    // top 20% blocks by RMS: last top_n elements of the sorted array
+    let top_n = ((total as f64 * UPMOST_BLOCKS_RATIO).round() as usize).max(1);
+    let upmost_rms = &rms_sorted[(total - top_n)..];
+
+    // rms_loud = sqrt( sum( rms² ) / top_n )
+    let rms_loud = (upmost_rms.iter().map(|r| r * r).sum::<f64>() / top_n as f64).sqrt();
+
+    if rms_loud <= 0.0 {
         return 0.0;
     }
 
-    20.0 * (peak_mean / rms_mean).log10()
+    20.0 * (peak_loud / rms_loud).log10()
 }
 
 // ─── File processing ──────────────────────────────────────────────────────────
