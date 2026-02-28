@@ -28,7 +28,7 @@ struct Args {
 //
 // The official DR algorithm (as used by the foobar2000 Dynamic Range Meter):
 //
-//  1. Split each channel into non-overlapping blocks of ~3 s (or BLOCK_SAMPLES samples).
+//  1. Split each channel into non-overlapping blocks of ~3 s.
 //  2. For each block compute:
 //       • RMS  = sqrt( mean(x²) )
 //       • Peak = max(|x|)
@@ -37,8 +37,6 @@ struct Args {
 //     where peak_of_loud_blocks  = RMS-weighted mean of block peaks
 //           rms_of_loud_blocks   = sqrt( mean of squared RMSes of loud blocks )
 //  5. DR_track = mean of per-channel DR values, rounded to nearest integer.
-
-const BLOCK_SAMPLES: usize = 17_640; // ~3 s at 44.1 kHz (scales with SR)
 
 fn block_size_for_sample_rate(sample_rate: u32) -> usize {
     // Keep roughly 3 s; snap to nearest multiple keeps things tidy
@@ -125,7 +123,6 @@ fn process_flac(path: &Path) -> Result<TrackResult, String> {
 
     // Interleaved sample iteration
     let mut samples_iter = reader.samples();
-    let mut interleaved_buf: Vec<f64> = Vec::with_capacity(channels as usize * block_len);
 
     loop {
         // Read one inter-channel frame
